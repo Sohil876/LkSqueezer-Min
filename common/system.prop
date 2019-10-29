@@ -1,0 +1,7 @@
+# This file will be read by resetprop
+# Example: Change dpi
+# ro.sf.lcd_density=320
+# taken from oneplus forums (probably an oxygenos/op specific prop that does nothing but why not) 
+ro.vendor.qti.sys.fw.bg_apps_limit=80
+ro.vendor.qti.sys.fw.bservice_limit=16
+ro.vendor.qti.sys.fw.bservice_age=8192
