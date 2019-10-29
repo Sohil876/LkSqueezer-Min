@@ -48,7 +48,7 @@ LOG "starting...!"
 # Create the IOsched definition file in case it doesn't exist and default it to cfq;
 if [[ ! -e $SCHED_FILE ]]; then
   LOG "first time huh? ;]"
-  echo "bfq" > $SCHED_FILE
+  echo "cfq" > $SCHED_FILE
 fi
 
 # Disable fsync for more IO throughput (thus faster initialization once again);
@@ -243,7 +243,7 @@ for i in /sys/block/*/queue; do
   echo "0" > $i/iostats
   echo "0" > $i/nomerges
   echo "128" > $i/nr_requests
-  echo "64" > $i/read_ahead_kb
+  echo "128" > $i/read_ahead_kb
   echo "0" > $i/rotational
   echo "1" > $i/rq_affinity
   echo "write through" > $i/write_cache
