@@ -50,6 +50,8 @@ if [[ ! -e $SCHED_FILE ]]; then
   LOG "first time huh? ;]"
   echo "cfq" > $SCHED_FILE
 fi
+# Set default io scheduler
+#echo "cfq" > $SCHED_FILE
 
 # Disable fsync for more IO throughput (thus faster initialization once again);
 # echo "N" > /sys/module/sync/parameters/fsync_enabled
@@ -225,11 +227,15 @@ busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime -t auto /proc
 busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime -t auto /sys
 
 # Same for data but disable background gc for f2fs;
-if mount | grep -q f2fs; then
+#if mount | grep -q f2fs; then
+# Set data partition type
+FS="ext4"
+if [ $FS = "f2fs" ]; then
   busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime,background_gc=off,fsync_mode=nobarrier -t auto /data
   LOG "f2fs FTW!"
 else
   busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime,barrier=0,noauto_da_alloc,discard -t auto /data
+  LOG "ext4 FTW!"
 fi
 
 # FileSystem (FS) optimized tweaks & enhancements for a improved userspace experience;
@@ -252,6 +258,7 @@ done;
 # Set the IO scheduler based on preference (defined in the sched file);
 SCHED=$(<$SCHED_FILE)
 echo $SCHED > /sys/block/mmcblk0/queue/scheduler
+echo $SCHED > /sys/block/mmcblk1/queue/scheduler
 
 if [[ $SCHED == "cfq" ]]; then
 # Disable low latency mode for increased throughput;
