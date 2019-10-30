@@ -227,10 +227,10 @@ busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime -t auto /proc
 busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime -t auto /sys
 
 # Same for data but disable background gc for f2fs;
-#if mount | grep -q f2fs; then
+if mount | grep -q f2fs; then
 # Set data partition type
-FS="ext4"
-if [ $FS = "f2fs" ]; then
+# FS="ext4"
+# if [ $FS = "f2fs" ]; then
   busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime,background_gc=off,fsync_mode=nobarrier -t auto /data
   LOG "f2fs FTW!"
 else
