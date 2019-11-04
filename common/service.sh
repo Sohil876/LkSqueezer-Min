@@ -28,7 +28,7 @@ else
 fi
 
 LOG_FILE=/storage/emulated/0/logs/lksqueezer.txt
-SCHED_FILE=/storage/emulated/0/logs/.lksfour.ios
+#SCHED_FILE=/storage/emulated/0/logs/.lksfour.ios
 
 # Create the dir for the log file in case it doesn't exist;
 if [[ ! -e /storage/emulated/0/logs ]]; then
@@ -39,19 +39,17 @@ fi
 echo -n "" > $LOG_FILE
 exec &>> $LOG_FILE
 LOG () {
-   echo "[$(date +"%Y/%m/%d.%T")] lksqueezer: $1"
+   echo "[$(date +"%Y/%m/%d.%T")] LkSqueezer-Mod: $1"
  }
 
 # Start logging
-LOG "starting...!"
+LOG "Starting...!"
 
 # Create the IOsched definition file in case it doesn't exist and default it to cfq;
-if [[ ! -e $SCHED_FILE ]]; then
-  LOG "first time huh? ;]"
-  echo "cfq" > $SCHED_FILE
-fi
-# Set default io scheduler
-#echo "cfq" > $SCHED_FILE
+#if [[ ! -e $SCHED_FILE ]]; then
+#  LOG "first time huh? ;]"
+#  echo "cfq" > $SCHED_FILE
+#fi
 
 # Disable fsync for more IO throughput (thus faster initialization once again);
 # echo "N" > /sys/module/sync/parameters/fsync_enabled
@@ -205,6 +203,9 @@ echo "2000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
 #echo "24" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
 #echo "256" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
 
+# Cpu boost duration
+echo "0" > /sys/module/cpu_boost/parameters/input_boost_ms
+
 # Virtual Memory tweaks & enhancements for a (massively?) improved balance between performance and battery life;
 echo "0" > /proc/sys/vm/compact_unevictable_allowed
 echo "0" > /proc/sys/vm/oom_dump_tasks
@@ -220,17 +221,19 @@ echo "48" > /proc/sys/vm/vfs_cache_pressure
 fstrim /cache
 fstrim /system
 fstrim /data
+LOG "FS Timmed (Cache/System/Data)"
 
 # Mounting tweak for better overall partition performance;
 busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime -t auto /
 busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime -t auto /proc
 busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime -t auto /sys
+LOG "Partitions remounted with performance enhancing flags"
 
 # Same for data but disable background gc for f2fs;
-if mount | grep -q f2fs; then
+#if mount | grep -q f2fs; then
 # Set data partition type
-# FS="ext4"
-# if [ $FS = "f2fs" ]; then
+FS="ext4"
+if [ $FS = "f2fs" ]; then
   busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime,background_gc=off,fsync_mode=nobarrier -t auto /data
   LOG "f2fs FTW!"
 else
@@ -240,36 +243,43 @@ fi
 
 # FileSystem (FS) optimized tweaks & enhancements for a improved userspace experience;
 echo "0" > /proc/sys/fs/dir-notify-enable
-echo "20" > /proc/sys/fs/lease-break-time
+echo "25" > /proc/sys/fs/lease-break-time
 
 # Wide block based tuning for reduced lag and less possible amount of general IO scheduling based overhead (Thanks to pkgnex @ XDA for the more than pretty much simplified version of this tweak. You really rock, dude!);
 for i in /sys/block/*/queue; do
   echo "0" > $i/add_random
   echo "0" > $i/io_poll
   echo "0" > $i/iostats
-  echo "0" > $i/nomerges
+  echo "2" > $i/nomerges
   echo "128" > $i/nr_requests
   echo "128" > $i/read_ahead_kb
   echo "0" > $i/rotational
-  echo "1" > $i/rq_affinity
+  echo "0" > $i/rq_affinity
   echo "write through" > $i/write_cache
 done;
 
-# Set the IO scheduler based on preference (defined in the sched file);
-SCHED=$(<$SCHED_FILE)
+# Set the IO scheduler on *blk0 (Internal storage), *blk1 (MMC)
+SCHED="noop"
+LOG "IO Scheduler: "
+
 echo $SCHED > /sys/block/mmcblk0/queue/scheduler
 echo $SCHED > /sys/block/mmcblk1/queue/scheduler
 
 if [[ $SCHED == "cfq" ]]; then
 # Disable low latency mode for increased throughput;
   echo "0" > /sys/block/mmcblk0/queue/iosched/low_latency
+  LOG "CFQ"
+elif [[ $SCHED == "bfq" ]]; then
+  LOG "BFQ"
+elif [[ $SCHED == "noop" ]]; then
+  LOG "NOOP"
 elif [[ $SCHED == "deadline" ]]; then
 # Tune deadline for even lower latencies and an ENERGETIC behavior (lmao);
   echo "2" > /sys/block/mmcblk0/queue/iosched/fifo_batch
   echo "10" > /sys/block/mmcblk0/queue/iosched/read_expire
   echo "50" > /sys/block/mmcblk0/queue/iosched/write_expire
   echo "3" > /sys/block/mmcblk0/queue/iosched/writes_starved
-  LOG "welcome to the deadline gang :D"
+  LOG "DEADLINE"
 fi;
 
 # Set GPU default power level to 7 (19Mhz) for a better batttery life;
@@ -291,11 +301,22 @@ echo 0 > /sys/class/kgsl/kgsl-3d0/devfreq/adrenoboost
 echo "3" > /sys/kernel/power_suspend/power_suspend_mode
 
 # Block harmless wakelocks to maximize sleeping time
-echo "qcom_rx_wakelock;wlan;wlan_wow_wl;wlan_extscan_wl;netmgr_wl;NETLINK" > /sys/class/misc/boeffla_wakelock_blocker/wakelock_blocker
+echo "qcom_rx_wakelock;wlan;wlan_wow_wl;wlan_extscan_wl;netmgr_wl;NETLINK;7000000.ssusb" > /sys/class/misc/boeffla_wakelock_blocker/wakelock_blocker
 
 # IO flush and drop caches;
 sync
 echo "3" > /proc/sys/vm/drop_caches
+
+# Set CPU min frequency
+#echo "0:1036800 1:1036800 2:1036800 3:1036800 4:1036800 5:1036800 6:1036800 7:1036800" > /sys/module/msm_performance/parameters/cpu_min_freq
+echo "1036800" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+echo "1036800" > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
+echo "1036800" > /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq
+echo "1036800" > /sys/devices/system/cpu/cpu3/cpufreq/scaling_min_freq
+echo "1036800" > /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+echo "1036800" > /sys/devices/system/cpu/cpu5/cpufreq/scaling_min_freq
+echo "1036800" > /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
+echo "1036800" > /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq
 
 # Voilà - everything done - report it in the log file;
 LOG "voilà!"
