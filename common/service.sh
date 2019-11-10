@@ -127,8 +127,8 @@ done
 
 # A couple of minor kernel entropy tweaks & enhancements for a slight UI responsivness boost;
 echo "72" > /proc/sys/kernel/random/urandom_min_reseed_secs
-echo "64" > /proc/sys/kernel/random/read_wakeup_threshold
-echo "512" > /proc/sys/kernel/random/write_wakeup_threshold
+echo "128" > /proc/sys/kernel/random/read_wakeup_threshold
+echo "384" > /proc/sys/kernel/random/write_wakeup_threshold
 
 # Network tweaks for slightly reduced battery consumption when being "actively" connected to a network connection;
 echo "128" > /proc/sys/net/core/netdev_max_backlog
@@ -189,19 +189,19 @@ echo "lightningutil" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 echo "2" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift2
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1_2
-echo "98" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_load
+echo "96" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_load
 echo "1689600" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_freq
 echo "32" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load1
 echo "84" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load2
-echo "3000" > /sys/devices/system/cpu/cpufreq/lightningutil/up_rate_limit_us
-echo "2000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
+echo "1000" > /sys/devices/system/cpu/cpufreq/lightningutil/up_rate_limit_us
+echo "3000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
 
 # Aggressively tune stune boost values for better battery life;
 #echo "-64" > /dev/stune/background/schedtune.boost
-#echo "-48" > /dev/stune/foreground/schedtune.boost
-#echo "8" > /dev/stune/top-app/schedtune.boost
-#echo "24" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
-#echo "256" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
+#echo "-56" > /dev/stune/foreground/schedtune.boost
+#echo "4" > /dev/stune/top-app/schedtune.boost
+#echo "32" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
+#echo "96" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
 
 # Cpu boost duration
 echo "0" > /sys/module/cpu_boost/parameters/input_boost_ms
@@ -211,11 +211,11 @@ echo "0" > /proc/sys/vm/compact_unevictable_allowed
 echo "0" > /proc/sys/vm/oom_dump_tasks
 echo "1200" > /proc/sys/vm/stat_interval
 echo "100" > /proc/sys/vm/swappiness
-echo "32" > /proc/sys/vm/dirty_ratio
-echo "16" > /proc/sys/vm/dirty_background_ratio
+echo "30" > /proc/sys/vm/dirty_ratio
+echo "8" > /proc/sys/vm/dirty_background_ratio
 echo "5000" > /proc/sys/vm/dirty_writeback_centisecs
 echo "750" > /proc/sys/vm/dirty_expire_centisecs
-echo "48" > /proc/sys/vm/vfs_cache_pressure
+echo "16" > /proc/sys/vm/vfs_cache_pressure
 
 # fstrim the respective partitions for a faster initialization process;
 fstrim /cache
@@ -243,7 +243,7 @@ fi
 
 # FileSystem (FS) optimized tweaks & enhancements for a improved userspace experience;
 echo "0" > /proc/sys/fs/dir-notify-enable
-echo "25" > /proc/sys/fs/lease-break-time
+echo "20" > /proc/sys/fs/lease-break-time
 
 # Wide block based tuning for reduced lag and less possible amount of general IO scheduling based overhead (Thanks to pkgnex @ XDA for the more than pretty much simplified version of this tweak. You really rock, dude!);
 for i in /sys/block/*/queue; do
@@ -251,7 +251,7 @@ for i in /sys/block/*/queue; do
   echo "0" > $i/io_poll
   echo "0" > $i/iostats
   echo "2" > $i/nomerges
-  echo "128" > $i/nr_requests
+  echo "1024" > $i/nr_requests
   echo "128" > $i/read_ahead_kb
   echo "0" > $i/rotational
   echo "0" > $i/rq_affinity
@@ -270,6 +270,8 @@ if [[ $SCHED == "cfq" ]]; then
   echo "0" > /sys/block/mmcblk0/queue/iosched/low_latency
   LOG "CFQ"
 elif [[ $SCHED == "bfq" ]]; then
+  # Lower timeout_sync for a lower process time budget;
+  echo "92" > /sys/block/mmcblk0/queue/iosched/timeout_sync
   LOG "BFQ"
 elif [[ $SCHED == "noop" ]]; then
   LOG "NOOP"
