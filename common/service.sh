@@ -185,7 +185,7 @@ echo "10000000" > /proc/sys/kernel/sched_wakeup_granularity_ns
 # Set the CPU governor to lightningutil (same as above but with the tunings already applied) 
 echo "lightningutil" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 
-# tune lightningutil governor with new values;
+# Tune lightningutil governor with new values;
 echo "2" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift2
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1_2
@@ -194,14 +194,14 @@ echo "1689600" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_freq
 echo "32" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load1
 echo "84" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load2
 echo "1000" > /sys/devices/system/cpu/cpufreq/lightningutil/up_rate_limit_us
-echo "3000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
+echo "2000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
 
 # Aggressively tune stune boost values for better battery life;
 #echo "-64" > /dev/stune/background/schedtune.boost
 #echo "-56" > /dev/stune/foreground/schedtune.boost
-#echo "4" > /dev/stune/top-app/schedtune.boost
+#echo "8" > /dev/stune/top-app/schedtune.boost
 #echo "32" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
-#echo "96" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
+#echo "112" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
 
 # Cpu boost duration
 echo "0" > /sys/module/cpu_boost/parameters/input_boost_ms
@@ -212,10 +212,10 @@ echo "0" > /proc/sys/vm/oom_dump_tasks
 echo "1200" > /proc/sys/vm/stat_interval
 echo "100" > /proc/sys/vm/swappiness
 echo "30" > /proc/sys/vm/dirty_ratio
-echo "8" > /proc/sys/vm/dirty_background_ratio
+echo "12" > /proc/sys/vm/dirty_background_ratio
 echo "5000" > /proc/sys/vm/dirty_writeback_centisecs
 echo "750" > /proc/sys/vm/dirty_expire_centisecs
-echo "16" > /proc/sys/vm/vfs_cache_pressure
+echo "32" > /proc/sys/vm/vfs_cache_pressure
 
 # fstrim the respective partitions for a faster initialization process;
 fstrim /cache
@@ -251,11 +251,11 @@ for i in /sys/block/*/queue; do
   echo "0" > $i/io_poll
   echo "0" > $i/iostats
   echo "2" > $i/nomerges
-  echo "1024" > $i/nr_requests
+  echo "128" > $i/nr_requests
   echo "128" > $i/read_ahead_kb
   echo "0" > $i/rotational
   echo "0" > $i/rq_affinity
-  echo "write through" > $i/write_cache
+#  echo "write through" > $i/write_cache
 done;
 
 # Set the IO scheduler on *blk0 (Internal storage), *blk1 (MMC)

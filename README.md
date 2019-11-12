@@ -1,4 +1,4 @@
-### LkSqueezer-Mod <v4.2>
+### LkSqueezer-Mod <v4.3>
 
 **CHANGES:**
 - Disabled: dynamic stuneboost(For now), adreno idler/boost, software CRC control.
