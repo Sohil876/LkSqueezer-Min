@@ -189,19 +189,19 @@ echo "lightningutil" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 echo "2" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift2
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1_2
-echo "96" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_load
+echo "92" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_load
 echo "1689600" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_freq
 echo "32" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load1
 echo "84" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load2
-echo "1000" > /sys/devices/system/cpu/cpufreq/lightningutil/up_rate_limit_us
-echo "2000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
+echo "2000" > /sys/devices/system/cpu/cpufreq/lightningutil/up_rate_limit_us
+echo "4000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
 
 # Aggressively tune stune boost values for better battery life;
 #echo "-64" > /dev/stune/background/schedtune.boost
 #echo "-56" > /dev/stune/foreground/schedtune.boost
-#echo "8" > /dev/stune/top-app/schedtune.boost
-#echo "32" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
-#echo "112" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
+#echo "0" > /dev/stune/top-app/schedtune.boost
+#echo "48" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
+#echo "136" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
 
 # Cpu boost duration
 echo "0" > /sys/module/cpu_boost/parameters/input_boost_ms
@@ -211,11 +211,11 @@ echo "0" > /proc/sys/vm/compact_unevictable_allowed
 echo "0" > /proc/sys/vm/oom_dump_tasks
 echo "1200" > /proc/sys/vm/stat_interval
 echo "100" > /proc/sys/vm/swappiness
-echo "30" > /proc/sys/vm/dirty_ratio
-echo "12" > /proc/sys/vm/dirty_background_ratio
+echo "32" > /proc/sys/vm/dirty_ratio
+echo "16" > /proc/sys/vm/dirty_background_ratio
 echo "5000" > /proc/sys/vm/dirty_writeback_centisecs
 echo "750" > /proc/sys/vm/dirty_expire_centisecs
-echo "32" > /proc/sys/vm/vfs_cache_pressure
+echo "12" > /proc/sys/vm/vfs_cache_pressure
 
 # fstrim the respective partitions for a faster initialization process;
 fstrim /cache
@@ -243,34 +243,36 @@ fi
 
 # FileSystem (FS) optimized tweaks & enhancements for a improved userspace experience;
 echo "0" > /proc/sys/fs/dir-notify-enable
-echo "20" > /proc/sys/fs/lease-break-time
+echo "25" > /proc/sys/fs/lease-break-time
 
 # Wide block based tuning for reduced lag and less possible amount of general IO scheduling based overhead (Thanks to pkgnex @ XDA for the more than pretty much simplified version of this tweak. You really rock, dude!);
+i=/sys/block/mmcblk0/queue
 for i in /sys/block/*/queue; do
   echo "0" > $i/add_random
   echo "0" > $i/io_poll
-  echo "0" > $i/iostats
+  echo "1" > $i/iostats
   echo "2" > $i/nomerges
-  echo "128" > $i/nr_requests
-  echo "128" > $i/read_ahead_kb
+  echo "256" > $i/nr_requests
+  echo "256" > $i/read_ahead_kb
   echo "0" > $i/rotational
   echo "0" > $i/rq_affinity
-#  echo "write through" > $i/write_cache
+  echo "write through" > $i/write_cache
 done;
 
 # Set the IO scheduler on *blk0 (Internal storage), *blk1 (MMC)
-SCHED="noop"
+SCHED="cfq"
+#SCHED2="noop"
 LOG "IO Scheduler: "
 
 echo $SCHED > /sys/block/mmcblk0/queue/scheduler
 echo $SCHED > /sys/block/mmcblk1/queue/scheduler
 
 if [[ $SCHED == "cfq" ]]; then
-# Disable low latency mode for increased throughput;
-  echo "0" > /sys/block/mmcblk0/queue/iosched/low_latency
+# Disable low latency mode for increased throughput at the cost of latency;
+  echo "1" > /sys/block/mmcblk0/queue/iosched/low_latency
   LOG "CFQ"
 elif [[ $SCHED == "bfq" ]]; then
-  # Lower timeout_sync for a lower process time budget;
+# Lower timeout_sync for a lower process time budget;
   echo "92" > /sys/block/mmcblk0/queue/iosched/timeout_sync
   LOG "BFQ"
 elif [[ $SCHED == "noop" ]]; then
@@ -319,6 +321,11 @@ echo "1036800" > /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
 echo "1036800" > /sys/devices/system/cpu/cpu5/cpufreq/scaling_min_freq
 echo "1036800" > /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
 echo "1036800" > /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq
+
+# Set animation scale and durations
+settings put global window_animation_scale 1.0
+settings put global transition_animation_scale 1.0
+settings put global animator_duration_scale 1.0
 
 # Voilà - everything done - report it in the log file;
 LOG "voilà!"
