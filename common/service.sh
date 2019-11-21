@@ -23,7 +23,7 @@ if [[ $MODDIR == "/system/bin" ]]; then
   echo "Dev mode."
 else
   echo "Delaying service..."
-  sleep 56
+  sleep 60
   stop perfd
 fi
 
@@ -39,10 +39,12 @@ fi
 echo -n "" > $LOG_FILE
 exec &>> $LOG_FILE
 LOG () {
-   echo "[$(date +"%Y/%m/%d.%T")] LkSqueezer-Mod: $1"
+   echo "[$(date +"%r")] $1"
  }
 
 # Start logging
+echo "LkSqueezer-Mod:"
+echo "[$(date +"%Y/%m/%d.%r")]"
 LOG "Starting...!"
 
 # Create the IOsched definition file in case it doesn't exist and default it to cfq;
@@ -58,12 +60,15 @@ LOG "Starting...!"
 # Disable software crc control
 echo "0" > /sys/module/mmc_core/parameters/use_spi_crc
 
-# Tweak the kernel task scheduler for improved overall system performance and user interface responsivness during all kind of possible workload based scenarios;
-echo "GENTLE_FAIR_SLEEPERS" > /sys/kernel/debug/sched_features
+# *Turn off some pretty useless kernel debugging;
+echo "N" > /sys/kernel/debug/debug_enabled
+
+# *Tweak the kernel task scheduler for improved overall system performance and user interface responsivness during all kind of possible workload based scenarios;
+echo "NO_GENTLE_FAIR_SLEEPERS" > /sys/kernel/debug/sched_features
 echo "NO_LB_BIAS" >  /sys/kernel/debug/sched_features
-echo "TTWU_QUEUE" > /sys/kernel/debug/sched_features
+echo "NO_TTWU_QUEUE" > /sys/kernel/debug/sched_features
 echo "NO_RT_PUSH_IPI" >  /sys/kernel/debug/sched_features
-echo "RT_RUNTIME_SHARE" > /sys/kernel/debug/sched_features
+echo "NO_RT_RUNTIME_SHARE" > /sys/kernel/debug/sched_features
 echo "FBI_STRICT_ORDER" > /sys/kernel/debug/sched_features
 echo "NO_EAS_USE_NEED_IDLE" > /sys/kernel/debug/sched_features
 
@@ -73,7 +78,9 @@ echo "0" > /proc/sys/debug/exception-trace
 # Disable in-kernel sched statistics for reduced overhead;
 echo "0" > /proc/sys/kernel/sched_schedstats
 
-# Turn off even more additional useless kernel debuggers, masks and modules that is not really needed & used at all;
+# *Turn off even more additional useless kernel debuggers, masks and modules that is not really needed & used at all;
+echo "0" > /sys/module/ppp_generic/parameters/mp_protocol_compress
+echo "0" > /sys/module/binder/parameters/debug_mask
 echo "Y" > /sys/module/bluetooth/parameters/disable_ertm
 echo "Y" > /sys/module/cryptomgr/parameters/notests
 echo "0" > /sys/module/diagchar/parameters/diag_mask_clear_param
@@ -82,44 +89,48 @@ echo "0" > /sys/module/dwc3/parameters/ep_addr_txdbg_mask
 echo "1" > /sys/module/hid/parameters/ignore_special_drivers
 echo "0" > /sys/module/hid_apple/parameters/fnmode
 echo "0" > /sys/module/hid_apple/parameters/iso_layout
-echo "0" > /sys/module/hid_magicmouse/parameters/emulate_3button
-echo "0" > /sys/module/hid_magicmouse/parameters/emulate_scroll_wheel
+echo "N" > /sys/module/hid_magicmouse/parameters/emulate_3button
+echo "N" > /sys/module/hid_magicmouse/parameters/emulate_scroll_wheel
+echo "0" > /sys/module/hid_magicmouse/parameters/scroll_speed
 echo "0" > /sys/module/icnss/parameters/dynamic_feature_mask
+echo "N" > /sys/module/ip6_tunnel/parameters/log_ecn_error
+echo "Y" > /sys/module/libcomposite/parameters/disable_l1_for_hs
+echo "0" > /sys/module/msm_show_resume_irq/parameters/debug_mask
+echo "0" > /sys/module/msm_smem/parameters/debug_mask
+echo "0" > /sys/module/msm_smp2p/parameters/debug_mask
 echo "0" > /sys/module/mt20xx/parameters/tv_antenna
-echo "0" > /sys/module/ppp_generic/parameters/mp_protocol_compress
+echo "Y" > /sys/module/printk/parameters/console_suspend
 echo "0" > /sys/module/rmnet_data/parameters/rmnet_data_log_level
 echo "0" > /sys/module/service_locator/parameters/enable
+echo "N" > /sys/module/sit/parameters/log_ecn_error
+echo "1" > /sys/module/subsystem_restart/parameters/disable_restart_work
+echo "0" > /sys/module/usb_bam/parameters/enable_event_log
+echo "Y" > /sys/module/workqueue/parameters/power_efficient
 
 # Turn off all debug_mask based sysfs kernel tunables;
 for i in $(find /sys/ -name debug_mask); do
 echo "0" > $i;
 done
-
 # Turn off all debug_level based sysfs kernel tunables;
 for i in $(find /sys/ -name debug_level); do
 echo "0" > $i;
 done
-
 # Turn off all edac logging kernel based sysfs tunables;
 for i in $(find /sys/ -name edac_mc_log_ce); do
 echo "0" > $i;
 done
-
 # Turn off all edac logging kernel based sysfs tunables;
 for i in $(find /sys/ -name edac_mc_log_ue); do
 echo "0" > $i;
 done
-
 # Turn off a few event logging based sysfs kernel tunables;
 for i in $(find /sys/ -name enable_event_log); do
 echo "0" > $i;
 done
-
 # Turn off a few ECN kernel based sysfs loggers;
 for i in $(find /sys/ -name log_ecn_error); do
 echo "0" > $i;
 done
-
 # Turn off all snapshot crashdumper modules;
 for i in $(find /sys/ -name snapshot_crashdumper); do
 echo "0" > $i;
@@ -186,25 +197,29 @@ echo "10000000" > /proc/sys/kernel/sched_wakeup_granularity_ns
 echo "lightningutil" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 
 # Tune lightningutil governor with new values;
-echo "2" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift2
+echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift2
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1_2
-echo "92" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_load
-echo "1689600" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_freq
-echo "32" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load1
-echo "84" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load2
-echo "2000" > /sys/devices/system/cpu/cpufreq/lightningutil/up_rate_limit_us
+echo "94" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_load
+echo "2016000" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_freq
+echo "34" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load1
+echo "80" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load2
+echo "1000" > /sys/devices/system/cpu/cpufreq/lightningutil/up_rate_limit_us
 echo "4000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
 
 # Aggressively tune stune boost values for better battery life;
-#echo "-64" > /dev/stune/background/schedtune.boost
+#echo "-32" > /dev/stune/background/schedtune.boost
 #echo "-56" > /dev/stune/foreground/schedtune.boost
 #echo "0" > /dev/stune/top-app/schedtune.boost
-#echo "48" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
-#echo "136" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
+#echo "12" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
+#echo "192" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
 
 # Cpu boost duration
 echo "0" > /sys/module/cpu_boost/parameters/input_boost_ms
+
+# *Use RCU_normal instead of RCU_expedited for improved real-time latency, CPU utilization and energy efficiency;
+#echo "0" > /sys/kernel/rcu_expedited
+#echo "1" > /sys/kernel/rcu_normal
 
 # Virtual Memory tweaks & enhancements for a (massively?) improved balance between performance and battery life;
 echo "0" > /proc/sys/vm/compact_unevictable_allowed
@@ -215,13 +230,7 @@ echo "32" > /proc/sys/vm/dirty_ratio
 echo "16" > /proc/sys/vm/dirty_background_ratio
 echo "5000" > /proc/sys/vm/dirty_writeback_centisecs
 echo "750" > /proc/sys/vm/dirty_expire_centisecs
-echo "12" > /proc/sys/vm/vfs_cache_pressure
-
-# fstrim the respective partitions for a faster initialization process;
-fstrim /cache
-fstrim /system
-fstrim /data
-LOG "FS Timmed (Cache/System/Data)"
+echo "24" > /proc/sys/vm/vfs_cache_pressure
 
 # Mounting tweak for better overall partition performance;
 busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime -t auto /
@@ -237,20 +246,20 @@ if [ $FS = "f2fs" ]; then
   busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime,background_gc=off,fsync_mode=nobarrier -t auto /data
   LOG "f2fs FTW!"
 else
-  busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime,barrier=0,noauto_da_alloc,discard -t auto /data
+  busybox mount -o remount,nosuid,nodev,noatime,nodiratime,relatime,noauto_da_alloc,discard -t auto /data
   LOG "ext4 FTW!"
 fi
 
 # FileSystem (FS) optimized tweaks & enhancements for a improved userspace experience;
 echo "0" > /proc/sys/fs/dir-notify-enable
-echo "25" > /proc/sys/fs/lease-break-time
+echo "20" > /proc/sys/fs/lease-break-time
 
 # Wide block based tuning for reduced lag and less possible amount of general IO scheduling based overhead (Thanks to pkgnex @ XDA for the more than pretty much simplified version of this tweak. You really rock, dude!);
-i=/sys/block/mmcblk0/queue
-for i in /sys/block/*/queue; do
+# Internal storage
+for i in /sys/block/mmcblk0/queue; do
   echo "0" > $i/add_random
   echo "0" > $i/io_poll
-  echo "1" > $i/iostats
+  echo "0" > $i/iostats
   echo "2" > $i/nomerges
   echo "256" > $i/nr_requests
   echo "256" > $i/read_ahead_kb
@@ -259,14 +268,30 @@ for i in /sys/block/*/queue; do
   echo "write through" > $i/write_cache
 done;
 
+# *Flash storages doesn't come with any back seeking problems, so set this as low as only possible for better performance
+echo "1" > /sys/block/mmcblk0/queue/iosched/back_seek_penalty
+echo "1" > /sys/block/mmcblk0rpmb/queue/iosched/back_seek_penalty
+
+# MMC
+for i in /sys/block/mmcblk1/queue; do
+  echo "0" > $i/add_random
+  echo "0" > $i/io_poll
+  echo "0" > $i/iostats
+  echo "2" > $i/nomerges
+  echo "128" > $i/nr_requests
+  echo "128" > $i/read_ahead_kb
+  echo "0" > $i/rotational
+  echo "0" > $i/rq_affinity
+  echo "write through" > $i/write_cache
+done;
+
 # Set the IO scheduler on *blk0 (Internal storage), *blk1 (MMC)
 SCHED="cfq"
-#SCHED2="noop"
-LOG "IO Scheduler: "
-
+SCHED2="noop"
 echo $SCHED > /sys/block/mmcblk0/queue/scheduler
-echo $SCHED > /sys/block/mmcblk1/queue/scheduler
-
+echo $SCHED2 > /sys/block/mmcblk1/queue/scheduler
+LOG "IO Scheduler: "
+LOG " Internal storage: "
 if [[ $SCHED == "cfq" ]]; then
 # Disable low latency mode for increased throughput at the cost of latency;
   echo "1" > /sys/block/mmcblk0/queue/iosched/low_latency
@@ -286,17 +311,40 @@ elif [[ $SCHED == "deadline" ]]; then
   LOG "DEADLINE"
 fi;
 
+LOG " MMC: "
+if [[ $SCHED2 == "cfq" ]]; then
+# Disable low latency mode for increased throughput at the cost of latency;
+  echo "1" > /sys/block/mmcblk0/queue/iosched/low_latency
+  LOG "CFQ"
+elif [[ $SCHED2 == "bfq" ]]; then
+# Lower timeout_sync for a lower process time budget;
+  echo "92" > /sys/block/mmcblk0/queue/iosched/timeout_sync
+  LOG "BFQ"
+elif [[ $SCHED2 == "noop" ]]; then
+  LOG "NOOP"
+elif [[ $SCHED2 == "deadline" ]]; then
+# Tune deadline for even lower latencies and an ENERGETIC behavior (lmao);
+  echo "2" > /sys/block/mmcblk0/queue/iosched/fifo_batch
+  echo "10" > /sys/block/mmcblk0/queue/iosched/read_expire
+  echo "50" > /sys/block/mmcblk0/queue/iosched/write_expire
+  echo "3" > /sys/block/mmcblk0/queue/iosched/writes_starved
+  LOG "DEADLINE"
+fi;
+
 # Set GPU default power level to 7 (19Mhz) for a better batttery life;
 echo "6" > /sys/class/kgsl/kgsl-3d0/default_pwrlevel
 
 # Set GPU minimum frequency
 echo "133330000" > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq
 
+# *Disable frequency scaling throttling of the Adreno GPU circuits;
+#echo "0" > /sys/class/kgsl/kgsl-3d0/throttling
+
 # Enable and adjust adreno idler for a rather battery aggressive behavior;
 echo "N" > /sys/module/adreno_idler/parameters/adreno_idler_active
-echo "32" > /sys/module/adreno_idler/parameters/adreno_idler_downdifferential
-echo "10" > /sys/module/adreno_idler/parameters/adreno_idler_idlewait
-echo "4096" > /sys/module/adreno_idler/parameters/adreno_idler_idleworkload
+echo "24" > /sys/module/adreno_idler/parameters/adreno_idler_downdifferential
+echo "7" > /sys/module/adreno_idler/parameters/adreno_idler_idlewait
+echo "6144" > /sys/module/adreno_idler/parameters/adreno_idler_idleworkload
 
 # Enable adreno boost and set it to low for better gpu up ramping;
 echo 0 > /sys/class/kgsl/kgsl-3d0/devfreq/adrenoboost
@@ -322,10 +370,22 @@ echo "1036800" > /sys/devices/system/cpu/cpu5/cpufreq/scaling_min_freq
 echo "1036800" > /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
 echo "1036800" > /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq
 
+# *Blackenedmods tunings from pixel4 Q
+# Disable / prevent the possibility of autoloading ldiscs;
+echo "0" > /proc/sys/dev/tty/ldisc_autoload
+# 
+echo "0" > /sys/module/ramoops/parameters/dump_oops
+
 # Set animation scale and durations
 settings put global window_animation_scale 1.0
 settings put global transition_animation_scale 1.0
-settings put global animator_duration_scale 1.0
+settings put global animator_duration_scale 0.75
+
+# fstrim the respective partitions for a faster initialization process;
+fstrim /cache
+fstrim /system
+fstrim /data
+LOG "FS Timmed (Cache/System/Data)"
 
 # Voilà - everything done - report it in the log file;
 LOG "voilà!"
