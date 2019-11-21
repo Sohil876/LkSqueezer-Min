@@ -186,22 +186,22 @@ echo "10000000" > /proc/sys/kernel/sched_wakeup_granularity_ns
 echo "lightningutil" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 
 # Tune lightningutil governor with new values;
-echo "2" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift2
+echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift2
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1_2
-echo "92" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_load
-echo "1689600" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_freq
-echo "32" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load1
-echo "84" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load2
-echo "2000" > /sys/devices/system/cpu/cpufreq/lightningutil/up_rate_limit_us
+echo "94" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_load
+echo "2016000" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_freq
+echo "34" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load1
+echo "80" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load2
+echo "1000" > /sys/devices/system/cpu/cpufreq/lightningutil/up_rate_limit_us
 echo "4000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
 
 # Aggressively tune stune boost values for better battery life;
-#echo "-64" > /dev/stune/background/schedtune.boost
+#echo "-32" > /dev/stune/background/schedtune.boost
 #echo "-56" > /dev/stune/foreground/schedtune.boost
 #echo "0" > /dev/stune/top-app/schedtune.boost
-#echo "48" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
-#echo "136" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
+#echo "12" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
+#echo "192" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
 
 # Cpu boost duration
 echo "0" > /sys/module/cpu_boost/parameters/input_boost_ms
@@ -215,7 +215,7 @@ echo "32" > /proc/sys/vm/dirty_ratio
 echo "16" > /proc/sys/vm/dirty_background_ratio
 echo "5000" > /proc/sys/vm/dirty_writeback_centisecs
 echo "750" > /proc/sys/vm/dirty_expire_centisecs
-echo "12" > /proc/sys/vm/vfs_cache_pressure
+echo "24" > /proc/sys/vm/vfs_cache_pressure
 
 # fstrim the respective partitions for a faster initialization process;
 fstrim /cache
@@ -252,7 +252,7 @@ for i in /sys/block/*/queue; do
   echo "0" > $i/io_poll
   echo "1" > $i/iostats
   echo "2" > $i/nomerges
-  echo "256" > $i/nr_requests
+  echo "512" > $i/nr_requests
   echo "256" > $i/read_ahead_kb
   echo "0" > $i/rotational
   echo "0" > $i/rq_affinity
@@ -294,9 +294,9 @@ echo "133330000" > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq
 
 # Enable and adjust adreno idler for a rather battery aggressive behavior;
 echo "N" > /sys/module/adreno_idler/parameters/adreno_idler_active
-echo "32" > /sys/module/adreno_idler/parameters/adreno_idler_downdifferential
-echo "10" > /sys/module/adreno_idler/parameters/adreno_idler_idlewait
-echo "4096" > /sys/module/adreno_idler/parameters/adreno_idler_idleworkload
+echo "24" > /sys/module/adreno_idler/parameters/adreno_idler_downdifferential
+echo "7" > /sys/module/adreno_idler/parameters/adreno_idler_idlewait
+echo "6144" > /sys/module/adreno_idler/parameters/adreno_idler_idleworkload
 
 # Enable adreno boost and set it to low for better gpu up ramping;
 echo 0 > /sys/class/kgsl/kgsl-3d0/devfreq/adrenoboost
