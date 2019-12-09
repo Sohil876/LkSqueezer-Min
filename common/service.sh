@@ -28,7 +28,7 @@ if [[ $MODDIR == "/system/bin" ]]; then
   echo "Dev mode."
 else
   echo "Delaying service..."
-  sleep 60
+  sleep 65
   stop perfd
 fi
 
@@ -56,7 +56,6 @@ LOG () {
 # Start logging
 echo "LkSqueezer-Mod:"
 echo "[$(date +"%Y/%m/%d")]"
-echo "[$(date +"%r")]"
 LOG "Starting...!"
 
 ### DEBUG ###
@@ -130,13 +129,15 @@ echo "qcom_rx_wakelock;wlan;wlan_wow_wl;wlan_extscan_wl;netmgr_wl;NETLINK;700000
 
 ### KERNEL ###
 # Tweak the kernel task scheduler for improved overall system performance and user interface responsivness during all kind of possible workload based scenarios;
-echo "NO_GENTLE_FAIR_SLEEPERS" > /sys/kernel/debug/sched_features
+#echo "NO_GENTLE_FAIR_SLEEPERS" > /sys/kernel/debug/sched_features
 echo "NO_LB_BIAS" >  /sys/kernel/debug/sched_features
-echo "NO_TTWU_QUEUE" > /sys/kernel/debug/sched_features
+#echo "TTWU_QUEUE" > /sys/kernel/debug/sched_features
 echo "NO_RT_PUSH_IPI" >  /sys/kernel/debug/sched_features
 echo "NO_RT_RUNTIME_SHARE" > /sys/kernel/debug/sched_features
-#echo "FBI_STRICT_ORDER" > /sys/kernel/debug/sched_features
+#echo "FBT_STRICT_ORDER" > /sys/kernel/debug/sched_features
 #echo "NO_EAS_USE_NEED_IDLE" > /sys/kernel/debug/sched_features
+echo "NO_STUNE_BOOST_BIAS_BIG" > /sys/kernel/debug/sched_features
+#echo "NEXT_BUDDY" >  /sys/kernel/debug/sched_features
 
 # Kernel based tweaks that reduces the total amount of wasted CPU cycles and gives back a huge amount of needed performance as well as battery life savings to both the whole system and the user experience itself;
 echo "0" > /proc/sys/kernel/panic
@@ -209,7 +210,7 @@ echo "2016000" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_freq
 echo "34" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load1
 echo "80" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load2
 echo "1000" > /sys/devices/system/cpu/cpufreq/lightningutil/up_rate_limit_us
-echo "4000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
+echo "3000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
 
 # Set CPU min frequency
 #echo "0:1036800 1:1036800 2:1036800 3:1036800 4:1036800 5:1036800 6:1036800 7:1036800" > /sys/module/msm_performance/parameters/cpu_min_freq
@@ -226,15 +227,15 @@ echo "1036800" > /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq
 echo "0" > /sys/module/cpu_boost/parameters/input_boost_ms
 
 # *Use RCU_normal instead of RCU_expedited for improved real-time latency, CPU utilization and energy efficiency;
-echo "0" > /sys/kernel/rcu_expedited
+#echo "1" > /sys/kernel/rcu_expedited
 echo "1" > /sys/kernel/rcu_normal
 
 # Aggressively tune stune boost values for better battery life;
 #echo "-72" > /dev/stune/background/schedtune.boost
 #echo "-32" > /dev/stune/foreground/schedtune.boost
 #echo "8" > /dev/stune/top-app/schedtune.boost
-#echo "24" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
-#echo "512" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
+#echo "12" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
+#echo "128" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
 
 ### GPU ###
 # Set GPU default power level to 7 (19Mhz) for a better batttery life;
@@ -274,7 +275,7 @@ echo "3" > /proc/sys/vm/drop_caches
 
 ### IO ###
 # Set the IO scheduler on *blk0 Internal storage (SCHED), *blk1 MMC (SCHED2)
-SCHED="cfq"
+SCHED="tripndroid"
 SCHED2="noop"
 echo $SCHED > /sys/block/mmcblk0/queue/scheduler
 echo $SCHED2 > /sys/block/mmcblk1/queue/scheduler
@@ -283,11 +284,18 @@ LOG "  Internal storage: "
 if [[ $SCHED == "cfq" ]]; then
 # Disable low latency mode for increased throughput at the cost of latency;
   echo "1" > /sys/block/mmcblk0/queue/iosched/low_latency
+  echo "32768" > /sys/block/mmcblk0/queue/iosched/back_seek_max
+  echo "1" > /sys/block/mmcblk0/queue/iosched/back_seek_penalty
+  echo "1" > /sys/block/mmcblk0/queue/iosched/group_idle
+  echo "200" > /sys/block/mmcblk0/queue/iosched/target_latency
+  echo "16" > /sys/block/mmcblk0/queue/iosched/quantum
   LOG "    CFQ"
 elif [[ $SCHED == "bfq" ]]; then
 # Lower timeout_sync for a lower process time budget;
   echo "92" > /sys/block/mmcblk0/queue/iosched/timeout_sync
   LOG "    BFQ"
+elif [[ $SCHED == "tripndroid" ]]; then
+  LOG "    TRIPnDROID"
 elif [[ $SCHED == "noop" ]]; then
   LOG "    NOOP"
 elif [[ $SCHED == "deadline" ]]; then
@@ -303,11 +311,18 @@ LOG "  MMC: "
 if [[ $SCHED2 == "cfq" ]]; then
 # Disable low latency mode for increased throughput at the cost of latency;
   echo "1" > /sys/block/mmcblk0/queue/iosched/low_latency
+  echo "32768" > /sys/block/mmcblk0/queue/iosched/back_seek_max
+  echo "1" > /sys/block/mmcblk0/queue/iosched/back_seek_penalty
+  echo "1" > /sys/block/mmcblk0/queue/iosched/group_idle
+  echo "200" > /sys/block/mmcblk0/queue/iosched/target_latency
+  echo "16" > /sys/block/mmcblk0/queue/iosched/quantum
   LOG "    CFQ"
 elif [[ $SCHED2 == "bfq" ]]; then
 # Lower timeout_sync for a lower process time budget;
   echo "92" > /sys/block/mmcblk0/queue/iosched/timeout_sync
   LOG "    BFQ"
+elif [[ $SCHED == "tripndroid" ]]; then
+  LOG "    TRIPnDROID"
 elif [[ $SCHED2 == "noop" ]]; then
   LOG "    NOOP"
 elif [[ $SCHED2 == "deadline" ]]; then
@@ -321,18 +336,19 @@ fi;
 
 # Wide block based tuning for reduced lag and less possible amount of general IO scheduling based overhead (Thanks to pkgnex @ XDA for the more than pretty much simplified version of this tweak. You really rock, dude!);
 for i in /sys/block/*/queue; do
-  echo "0" > $i/add_random;
-  echo "128" > $i/read_ahead_kb;
-  echo "0" > $i/rotational;
-  echo "1" > $i/rq_affinity;
+  echo "0" > $i/add_random
+  echo "128" > $i/read_ahead_kb
+  echo "0" > $i/rotational
+  echo "2" > $i/rq_affinity
+  echo "1" > $i/nomerges
 done;
 
 # Internal storage
 for i in /sys/block/mmcblk0/queue; do
   echo "0" > $i/io_poll
   echo "0" > $i/iostats
-  echo "2" > $i/nomerges
-  echo "256" > $i/nr_requests
+#  echo "1" > $i/nomerges
+  echo "512" > $i/nr_requests
   echo "256" > $i/read_ahead_kb
   echo "write through" > $i/write_cache
 done;
@@ -341,13 +357,12 @@ done;
 for i in /sys/block/mmcblk1/queue; do
   echo "0" > $i/io_poll
   echo "0" > $i/iostats
-  echo "2" > $i/nomerges
+#  echo "1" > $i/nomerges
   echo "128" > $i/nr_requests
   echo "write through" > $i/write_cache
 done;
 
 # Flash storages dont come with any back seeking problems, so set this as low as possible for performance
-echo "1" > /sys/block/mmcblk0/queue/iosched/back_seek_penalty
 echo "1" > /sys/block/mmcblk0rpmb/queue/iosched/back_seek_penalty
 
 # A couple of minor kernel entropy tweaks & enhancements for a slight UI responsivness boost;
@@ -362,7 +377,10 @@ echo "20" > /proc/sys/fs/lease-break-time
 
 # Disable fsync for more IO throughput (thus faster initialization once again);
 # echo "N" > /sys/module/sync/parameters/fsync_enabled
-# reverted for safety reasons and clarified misconception about it
+# Dyanamic fsync:
+#  When enabled and screen is on, fsync operation is asynchronous
+#  When screen is off, this operation is done synchronously
+echo '1'> /sys/kernel/dyn_fsync/Dyn_fsync_active
 
 # fstrim the respective partitions for a faster initialization process;
 fstrim /cache
@@ -384,16 +402,16 @@ echo "0" > /proc/sys/dev/tty/ldisc_autoload
 echo "0" > /sys/module/ramoops/parameters/dump_oops
 
 # Set animation scale and durations
-#settings put global window_animation_scale 1.25
-#settings put global transition_animation_scale 1.25
-#settings put global animator_duration_scale 0.75
-#echo "Transitions: "
-#echo "  Window animation scale: "
-#settings get global window_animation_scale
-#echo "  Transition animation scale: "
-#settings get global transition_animation_scale
-#echo "  Animator duration: "
-#settings get global animator_duration_scale
+settings put global window_animation_scale 1.0
+settings put global transition_animation_scale 1.0
+settings put global animator_duration_scale 1.0
+echo "Transitions: "
+echo "  Window animation scale: "
+settings get global window_animation_scale
+echo "  Transition animation scale: "
+settings get global transition_animation_scale
+echo "  Animator duration: "
+settings get global animator_duration_scale
 
 ###_-END-_###
 # Voilà - everything done - report it in the log file;

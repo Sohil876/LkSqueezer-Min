@@ -103,11 +103,12 @@ REPLACE="
 
 print_modname() {
   ui_print "#############################################################"
-  ui_print "##    Lightning Kernel Squeezer by _Yank, Mod by Sohil876"
-  ui_print "##                  .. get the most of your device .." 
-  ui_print "##                     .. I hope I helped you out! ;*" 
-  ui_print "##" 
-  ui_print "##    p.s.: keep the /sdcard/logs/.lksqueezer.ios file!" 
+  ui_print "##       Lightning Kernel Squeezer"
+  ui_print "##             by _Yank, Sohil876 " 
+  ui_print "##       .. Get the most of your device .." 
+  ui_print "##       .. I hope I helped you out! ;*" 
+  ui_print "##"
+  ui_print "##       P.S.: Keep the files in /sdcard/logs/ folder!" 
   ui_print "#############################################################"
 }
 
