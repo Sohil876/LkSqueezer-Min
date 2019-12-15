@@ -129,7 +129,7 @@ echo "qcom_rx_wakelock;wlan;wlan_wow_wl;wlan_extscan_wl;netmgr_wl;NETLINK;700000
 
 ### KERNEL ###
 # Tweak the kernel task scheduler for improved overall system performance and user interface responsivness during all kind of possible workload based scenarios;
-#echo "NO_GENTLE_FAIR_SLEEPERS" > /sys/kernel/debug/sched_features
+echo "NO_GENTLE_FAIR_SLEEPERS" > /sys/kernel/debug/sched_features
 echo "NO_LB_BIAS" >  /sys/kernel/debug/sched_features
 #echo "TTWU_QUEUE" > /sys/kernel/debug/sched_features
 echo "NO_RT_PUSH_IPI" >  /sys/kernel/debug/sched_features
@@ -202,7 +202,7 @@ fi
 echo "lightningutil" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 
 # Tune lightningutil governor with new values;
-echo "4" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift2
+echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift2
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1_2
 echo "94" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_load
@@ -228,7 +228,7 @@ echo "0" > /sys/module/cpu_boost/parameters/input_boost_ms
 
 # *Use RCU_normal instead of RCU_expedited for improved real-time latency, CPU utilization and energy efficiency;
 #echo "1" > /sys/kernel/rcu_expedited
-echo "1" > /sys/kernel/rcu_normal
+#echo "1" > /sys/kernel/rcu_normal
 
 # Aggressively tune stune boost values for better battery life;
 #echo "-72" > /dev/stune/background/schedtune.boost
@@ -251,7 +251,7 @@ echo "133330000" > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq
 echo "N" > /sys/module/adreno_idler/parameters/adreno_idler_active
 echo "20" > /sys/module/adreno_idler/parameters/adreno_idler_downdifferential
 echo "24" > /sys/module/adreno_idler/parameters/adreno_idler_idlewait
-echo "8192" > /sys/module/adreno_idler/parameters/adreno_idler_idleworkload
+echo "6144" > /sys/module/adreno_idler/parameters/adreno_idler_idleworkload
 
 # Enable adreno boost and set it to low for better gpu up ramping;
 echo 0 > /sys/class/kgsl/kgsl-3d0/devfreq/adrenoboost
@@ -275,7 +275,7 @@ echo "3" > /proc/sys/vm/drop_caches
 
 ### IO ###
 # Set the IO scheduler on *blk0 Internal storage (SCHED), *blk1 MMC (SCHED2)
-SCHED="tripndroid"
+SCHED="cfq"
 SCHED2="noop"
 echo $SCHED > /sys/block/mmcblk0/queue/scheduler
 echo $SCHED2 > /sys/block/mmcblk1/queue/scheduler
@@ -339,16 +339,15 @@ for i in /sys/block/*/queue; do
   echo "0" > $i/add_random
   echo "128" > $i/read_ahead_kb
   echo "0" > $i/rotational
-  echo "2" > $i/rq_affinity
-  echo "1" > $i/nomerges
 done;
 
 # Internal storage
 for i in /sys/block/mmcblk0/queue; do
   echo "0" > $i/io_poll
   echo "0" > $i/iostats
-#  echo "1" > $i/nomerges
-  echo "512" > $i/nr_requests
+  echo "1" > $i/rq_affinity
+  echo "1" > $i/nomerges
+  echo "256" > $i/nr_requests
   echo "256" > $i/read_ahead_kb
   echo "write through" > $i/write_cache
 done;
@@ -357,7 +356,8 @@ done;
 for i in /sys/block/mmcblk1/queue; do
   echo "0" > $i/io_poll
   echo "0" > $i/iostats
-#  echo "1" > $i/nomerges
+  echo "1" > $i/rq_affinity
+  echo "1" > $i/nomerges
   echo "128" > $i/nr_requests
   echo "write through" > $i/write_cache
 done;
@@ -402,16 +402,16 @@ echo "0" > /proc/sys/dev/tty/ldisc_autoload
 echo "0" > /sys/module/ramoops/parameters/dump_oops
 
 # Set animation scale and durations
-settings put global window_animation_scale 1.0
-settings put global transition_animation_scale 1.0
-settings put global animator_duration_scale 1.0
-echo "Transitions: "
-echo "  Window animation scale: "
-settings get global window_animation_scale
-echo "  Transition animation scale: "
-settings get global transition_animation_scale
-echo "  Animator duration: "
-settings get global animator_duration_scale
+#settings put global window_animation_scale 1.0
+#settings put global transition_animation_scale 1.0
+#settings put global animator_duration_scale 1.0
+#echo "Transitions: "
+#echo "  Window animation scale: "
+#settings get global window_animation_scale
+#echo "  Transition animation scale: "
+#settings get global transition_animation_scale
+#echo "  Animator duration: "
+#settings get global animator_duration_scale
 
 ###_-END-_###
 # Voilà - everything done - report it in the log file;

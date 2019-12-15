@@ -9,6 +9,7 @@ umask 022
 # Initial cleanup
 rm -rf $TMPDIR 2>/dev/null
 mkdir -p $TMPDIR
+
 # echo before loading util_functions
 ui_print() { echo "$1"; }
 

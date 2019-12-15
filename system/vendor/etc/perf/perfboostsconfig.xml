@@ -65,7 +65,7 @@
         <!-- Type="", Rotation latency boost -->
 
         <Config
-            Id="0x00001089" Enable="true" Timeout="2000"
+            Id="0x00001089" Enable="true" Timeout="1000"
             Resources="0x40C00000, 0x1, 0x40800100, 0x7A6" />
 
     <!--Rotation animation boost-->
@@ -81,7 +81,7 @@
         <!-- Display on resource opcode, value -->
         <Config
                 Id="0x00001041" Enable="true" Timeout="0" Target="msm8953"
-                Resources="0x40000000, 1" />
+                Resources="0x40000000, 0x1" />
 
     <!--Display off Resource -->
         <!-- CPUBOOST_MAX_FREQ LITTLE Core resource opcode, value -->
@@ -89,6 +89,6 @@
         <!-- Display on resource opcode, value -->
         <Config
                 Id="0x00001040" Enable="true" Timeout="0" Target="msm8953"
-                Resources="0x40804100, 0x579, 0x41004100, 2, 0x40000000, 0x0" />
+                Resources="0x40000000, 0x0" />
     </PerfBoost>
 </BoostConfigs>

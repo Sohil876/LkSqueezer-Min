@@ -30,7 +30,7 @@ LATESTARTSERVICE=true
 # Check the documentations for more info why you would need this
 
 # Construct your own list here
-REPLACE="
+REPLACE="/system/vendor/etc/perf/perfboostsconfig.xml
 "
 
 ##########################################################################################
