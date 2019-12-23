@@ -7,3 +7,5 @@ ro.vendor.qti.sys.fw.trim_empty_percent=80
 # taken from oneplus forums (probably an oxygenos/op specific prop that does nothing but why not) 
 ro.vendor.qti.sys.fw.bservice_limit=24
 ro.vendor.qti.sys.fw.bservice_age=16384
+# 
+debug.sf.latch_unsignaled=1
