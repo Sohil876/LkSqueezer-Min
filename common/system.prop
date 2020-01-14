@@ -7,5 +7,14 @@ ro.vendor.qti.sys.fw.trim_empty_percent=80
 # taken from oneplus forums (probably an oxygenos/op specific prop that does nothing but why not) 
 ro.vendor.qti.sys.fw.bservice_limit=24
 ro.vendor.qti.sys.fw.bservice_age=16384
-# 
+#
+# Force Home in Memory
+ro.HOME_APP_ADJ=1
+# Disables the sending of usage data
+ro.config.nocheckin=1
+#
+dalvik.vm.usejitprofiles=true
+debug.sf.hw=1
+#
 debug.sf.latch_unsignaled=1
+#sys.use_fifo_ui=0
