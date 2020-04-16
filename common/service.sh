@@ -31,14 +31,13 @@ else
   stop perfd
 fi
 
+###_LOGGING_###
 LOG_FILE=/storage/emulated/0/logs/lksqueezer.txt
 #SCHED_FILE=/storage/emulated/0/logs/.lksfour.ios
-
 # Create the dir for the log file in case it doesn't exist;
 if [[ ! -e /storage/emulated/0/logs ]]; then
   mkdir /storage/emulated/0/logs
 fi
-
 # Redirect all the output to the log file after clearing it and create a dedicated function for logging;
 echo -n "" > $LOG_FILE
 exec &>> $LOG_FILE
@@ -96,6 +95,8 @@ echo "1" > /sys/module/subsystem_restart/parameters/disable_restart_work
 echo "0" > /sys/module/usb_bam/parameters/enable_event_log
 echo "Y" > /sys/module/workqueue/parameters/power_efficient
 echo "0" > /sys/module/suspend/parameters/pm_test_delay
+# Fully disable kernel printk console log spamming directly for less amount of useless wakeups (reduces overhead);
+echo "0 0 0 0" > /proc/sys/kernel/printk
 # Turn off all debug_mask based sysfs kernel tunables;
 for i in $(find /sys/ -name debug_mask); do
 echo "0" > $i;
@@ -124,19 +125,20 @@ done
 for i in $(find /sys/ -name snapshot_crashdumper); do
 echo "0" > $i;
 done
+echo "(Ignore warnings like no file or directory found of ipv6)"
 
 ### BLOCK WAKELOCKS ###
 # Block harmless wakelocks to maximize sleeping time
-echo "qcom_rx_wakelock;wlan;wlan_wow_wl;wlan_extscan_wl;netmgr_wl;NETLINK;7000000.ssusb" > /sys/class/misc/boeffla_wakelock_blocker/wakelock_blocker
+echo "qcom_rx_wakelock;wlan;wlan_wow_wl;wlan_extscan_wl;netmgr_wl;NETLINK;7000000.ssusb;IPA_RM12;IPA_WS" > /sys/class/misc/boeffla_wakelock_blocker/wakelock_blocker
 
 ### KERNEL ###
 # Tweak the kernel task scheduler for improved overall system performance and user interface responsivness during all kind of possible workload based scenarios;
 echo "NO_GENTLE_FAIR_SLEEPERS" > /sys/kernel/debug/sched_features
 echo "NO_LB_BIAS" > /sys/kernel/debug/sched_features
-#echo "TTWU_QUEUE" > /sys/kernel/debug/sched_features
+echo "TTWU_QUEUE" > /sys/kernel/debug/sched_features
 echo "NO_RT_PUSH_IPI" > /sys/kernel/debug/sched_features
 echo "NO_RT_RUNTIME_SHARE" > /sys/kernel/debug/sched_features
-#echo "FBT_STRICT_ORDER" > /sys/kernel/debug/sched_features
+echo "FBT_STRICT_ORDER" > /sys/kernel/debug/sched_features
 #echo "NO_EAS_USE_NEED_IDLE" > /sys/kernel/debug/sched_features
 echo "NO_STUNE_BOOST_BIAS_BIG" > /sys/kernel/debug/sched_features
 echo "NEXT_BUDDY" > /sys/kernel/debug/sched_features
@@ -147,7 +149,9 @@ echo "0" > /proc/sys/kernel/perf_cpu_time_max_percent
 echo "20000000" > /proc/sys/kernel/sched_latency_ns
 echo "10000000" > /proc/sys/kernel/sched_wakeup_granularity_ns
 # For slightly reducing both overall latency and jitter by a fair and well-deserved amount, then increase the target minimum scheduler period in which a single task is allowed to run;
-echo "1000000" > /proc/sys/kernel/sched_min_granularity_ns
+echo "1500000" > /proc/sys/kernel/sched_min_granularity_ns
+# Migration of tasks from one core to one another is a excessively expensive process for the system and may introduce some extra latency in a possible "worst case scenario". For 'fighting' this, then slightly increase the interval(s) that's required before the kernel considers migrating a task from one core to one another core;
+echo "2000000" > /proc/sys/kernel/sched_migration_cost_ns
 
 ### NETWORK ###
 # Network tweaks for slightly reduced battery consumption when being "actively" connected to a network connection;
@@ -195,53 +199,56 @@ else
 fi
 
 ### CPU ###
+# Set CPU frequency
+# Available frequencies: 652800 1036800 1401600 1689600 1804800 1958400 2016000
+CPU_MIN_FREQ="1036800"
+CPU_MAX_FREQ="2016000"
 # Set the CPU governor to lightningutil (same as above but with the tunings already applied) 
 echo "lightningutil" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 # Tune lightningutil governor with new values;
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift2
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1
 echo "3" > /sys/devices/system/cpu/cpufreq/lightningutil/bit_shift1_2
-echo "94" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_load
-echo "2016000" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_freq
+echo "92" > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_load
+echo $CPU_MAX_FREQ > /sys/devices/system/cpu/cpufreq/lightningutil/hispeed_freq
 echo "34" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load1
 echo "80" > /sys/devices/system/cpu/cpufreq/lightningutil/target_load2
 echo "1000" > /sys/devices/system/cpu/cpufreq/lightningutil/up_rate_limit_us
 echo "3000" > /sys/devices/system/cpu/cpufreq/lightningutil/down_rate_limit_us
+# Set-up the CPUSet groups for performance and efficiency;
+echo "0-3,4-7" > /dev/cpuset/background/cpus
+echo "0-7" > /dev/cpuset/camera-daemon/cpus
+echo "0-3,4-7" > /dev/cpuset/foreground/cpus
+echo "0-7" > /dev/cpuset/restricted/cpus
+echo "0-3,4-7" > /dev/cpuset/system-background/cpus
+echo "0-3,4-7" > /dev/cpuset/top-app/cpus
 # Set CPU min frequency
-# Available frequencies: 652800 1036800 1401600 1689600 1804800 1958400 2016000
-echo "0:1036800 1:1036800 2:1036800 3:1036800 4:1036800 5:1036800 6:1036800 7:1036800" > /sys/module/msm_performance/parameters/cpu_min_freq
-echo "1036800" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
-echo "1036800" > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
-echo "1036800" > /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq
-echo "1036800" > /sys/devices/system/cpu/cpu3/cpufreq/scaling_min_freq
-echo "1036800" > /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
-echo "1036800" > /sys/devices/system/cpu/cpu5/cpufreq/scaling_min_freq
-echo "1036800" > /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
-echo "1036800" > /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq
+echo "0:${CPU_MIN_FREQ} 1:${CPU_MIN_FREQ} 2:${CPU_MIN_FREQ} 3:${CPU_MIN_FREQ} 4:${CPU_MIN_FREQ} 5:${CPU_MIN_FREQ} 6:${CPU_MIN_FREQ} 7:${CPU_MIN_FREQ}" > /sys/module/msm_performance/parameters/cpu_min_freq
+echo $CPU_MIN_FREQ > /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq
 # Set CPU max frequency
-# Available frequencies: 652800 1036800 1401600 1689600 1804800 1958400 2016000
-echo "0:2016000 1:2016000 2:2016000 3:2016000 4:2016000 5:2016000 6:2016000 7:2016000" > /sys/module/msm_performance/parameters/cpu_max_freq
-echo "2016000" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
-echo "2016000" > /sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq
-echo "2016000" > /sys/devices/system/cpu/cpu2/cpufreq/scaling_max_freq
-echo "2016000" > /sys/devices/system/cpu/cpu3/cpufreq/scaling_max_freq
-echo "2016000" > /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
-echo "2016000" > /sys/devices/system/cpu/cpu5/cpufreq/scaling_max_freq
-echo "2016000" > /sys/devices/system/cpu/cpu6/cpufreq/scaling_max_freq
-echo "2016000" > /sys/devices/system/cpu/cpu7/cpufreq/scaling_max_freq
+echo "0:${CPU_MAX_FREQ} 1:${CPU_MAX_FREQ} 2:${CPU_MAX_FREQ} 3:${CPU_MAX_FREQ} 4:${CPU_MAX_FREQ} 5:${CPU_MAX_FREQ} 6:${CPU_MAX_FREQ} 7:${CPU_MAX_FREQ}" > /sys/module/msm_performance/parameters/cpu_max_freq
+echo $CPU_MAX_FREQ > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq
 # Cpu boost duration
 echo "0" > /sys/module/cpu_boost/parameters/input_boost_ms
+# Enable the IOwait_boost flag exclusively on the low power cluster for better performance during heavier IO workloads;
+echo "1" > /sys/devices/system/cpu/cpufreq/lightningutil/iowait_boost_enable
+# Use RCU_normal instead of RCU_expedited for improved real-time latency, CPU utilization and energy efficiency;
+#echo "1" > /sys/kernel/rcu_expedited
+echo "1" > /sys/kernel/rcu_normal
 # Aggressively tune stune boost values for better battery life;
 #echo "-72" > /dev/stune/background/schedtune.boost
 #echo "-32" > /dev/stune/foreground/schedtune.boost
 #echo "8" > /dev/stune/top-app/schedtune.boost
 #echo "12" > /sys/module/cpu_boost/parameters/dynamic_stune_boost
 #echo "128" > /sys/module/cpu_boost/parameters/dynamic_stune_boost_ms
+# Increase the usage of LITTLE cluster for saving power;
+#echo "94" > /proc/sys/kernel/sched_downmigrate
 
 ### GPU ###
-# Set GPU default power level to 7 (19Mhz) for a better batttery life;
-echo "6" > /sys/class/kgsl/kgsl-3d0/default_pwrlevel
+# Set GPU default power level;
+echo "7" > /sys/class/kgsl/kgsl-3d0/default_pwrlevel
 # Set GPU minimum frequency
+# Available frequencies: 19200000 133330000 216000000 320000000 400000000 510000000 560000000 650000000
 echo "133330000" > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq
 # Enable and adjust adreno idler for a rather battery aggressive behavior;
 echo "N" > /sys/module/adreno_idler/parameters/adreno_idler_active
@@ -249,9 +256,9 @@ echo "20" > /sys/module/adreno_idler/parameters/adreno_idler_downdifferential
 echo "24" > /sys/module/adreno_idler/parameters/adreno_idler_idlewait
 echo "6144" > /sys/module/adreno_idler/parameters/adreno_idler_idleworkload
 # Enable adreno boost and set it to low for better gpu up ramping;
-echo 0 > /sys/class/kgsl/kgsl-3d0/devfreq/adrenoboost
+echo "0" > /sys/class/kgsl/kgsl-3d0/devfreq/adrenoboost
 # Disable frequency scaling throttling of the Adreno GPU circuits;
-echo "0" > /sys/class/kgsl/kgsl-3d0/throttling
+#echo "0" > /sys/class/kgsl/kgsl-3d0/throttling
 # Set opengl renderer
 # Default is opengl, skiagl (for opengl skia), skiavk (for vulkan skia).
 LOG "OPENGL Renderer: " 
@@ -261,7 +268,7 @@ LOG "Forced GPU Rendering: "
 #setprop debug.egl.hw 1
 getprop debug.egl.hw
 LOG "EGL Buffercount: "
-#setprop debug.egl.buffcount 0
+#setprop debug.egl.buffcount 2
 getprop debug.egl.buffcount
 
 ### VIRTUAL MEMORY ###
@@ -269,21 +276,26 @@ getprop debug.egl.buffcount
 echo "0" > /proc/sys/vm/compact_unevictable_allowed
 echo "0" > /proc/sys/vm/reap_mem_on_sigkill
 echo "0" > /proc/sys/vm/oom_dump_tasks
-echo "1" > /proc/sys/vm/oom_kill_allocating_task
+echo "0" > /proc/sys/vm/oom_kill_allocating_task
+echo "0" > /sys/module/lowmemorykiller/parameters/oom_reaper
+echo "0" > /proc/sys/vm/extra_free_kbytes
+echo "4096" > /proc/sys/vm/min_free_kbytes
 echo "1200" > /proc/sys/vm/stat_interval
 echo "80" > /proc/sys/vm/swappiness
 echo "24" > /proc/sys/vm/dirty_ratio
 echo "8" > /proc/sys/vm/dirty_background_ratio
 echo "5000" > /proc/sys/vm/dirty_writeback_centisecs
 echo "750" > /proc/sys/vm/dirty_expire_centisecs
-echo "40" > /proc/sys/vm/vfs_cache_pressure
+echo "60" > /proc/sys/vm/vfs_cache_pressure
+echo "21816,29088,36360,43632,50904,65448" > /sys/module/lowmemorykiller/parameters/minfree
+echo "1" > /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk
 # VM flush and drop caches;
 sync
 echo "3" > /proc/sys/vm/drop_caches
 
 ### IO ###
 # Set the IO scheduler on *blk0 Internal storage (SCHED), *blk1 MMC (SCHED2)
-SCHED="noop"
+SCHED="cfq"
 SCHED2="noop"
 echo $SCHED > /sys/block/mmcblk0/queue/scheduler
 echo $SCHED2 > /sys/block/mmcblk1/queue/scheduler
@@ -294,7 +306,7 @@ if [[ $SCHED == "cfq" ]]; then
   echo "1" > /sys/block/mmcblk0/queue/iosched/low_latency
   echo "32768" > /sys/block/mmcblk0/queue/iosched/back_seek_max
   echo "1" > /sys/block/mmcblk0/queue/iosched/back_seek_penalty
-  echo "0" > /sys/block/mmcblk0/queue/iosched/group_idle
+  echo "8" > /sys/block/mmcblk0/queue/iosched/group_idle
   echo "1" > /sys/block/mmcblk0/queue/iosched/slice_idle
   echo "200" > /sys/block/mmcblk0/queue/iosched/target_latency
   echo "16" > /sys/block/mmcblk0/queue/iosched/quantum
@@ -323,12 +335,12 @@ if [[ $SCHED2 == "cfq" ]]; then
   echo "1" > /sys/block/mmcblk1/queue/iosched/low_latency
   echo "32768" > /sys/block/mmcblk1/queue/iosched/back_seek_max
   echo "1" > /sys/block/mmcblk1/queue/iosched/back_seek_penalty
-  echo "0" > /sys/block/mmcblk1/queue/iosched/group_idle
+  echo "8" > /sys/block/mmcblk1/queue/iosched/group_idle
   echo "1" > /sys/block/mmcblk1/queue/iosched/slice_idle
   echo "200" > /sys/block/mmcblk1/queue/iosched/target_latency
   echo "16" > /sys/block/mmcblk1/queue/iosched/quantum
-  echo "248" > /sys/block/mmcblk0/queue/iosched/fifo_expire_async
-  echo "124" > /sys/block/mmcblk0/queue/iosched/fifo_expire_sync
+  echo "248" > /sys/block/mmcblk1/queue/iosched/fifo_expire_async
+  echo "124" > /sys/block/mmcblk1/queue/iosched/fifo_expire_sync
   LOG "    CFQ"
 elif [[ $SCHED2 == "bfq" ]]; then
 # Lower timeout_sync for a lower process time budget;
@@ -350,15 +362,15 @@ fi;
 for i in /sys/block/*/queue; do
   echo "0" > $i/add_random
   echo "0" > $i/rotational
-  echo "128" > $i/read_ahead_kb
+#  echo "128" > $i/read_ahead_kb
 done;
 # Internal storage;
 for i in /sys/block/mmcblk0/queue; do
   echo "0" > $i/io_poll
   echo "0" > $i/iostats
-  echo "1" > $i/rq_affinity
+  echo "2" > $i/rq_affinity
   echo "1" > $i/nomerges
-  echo "512" > $i/nr_requests
+  echo "256" > $i/nr_requests
   echo "128" > $i/read_ahead_kb
   echo "write through" > $i/write_cache
 done;
@@ -366,9 +378,10 @@ done;
 for i in /sys/block/mmcblk1/queue; do
   echo "0" > $i/io_poll
   echo "0" > $i/iostats
-  echo "1" > $i/rq_affinity
+  echo "2" > $i/rq_affinity
   echo "1" > $i/nomerges
   echo "128" > $i/nr_requests
+  echo "128" > $i/read_ahead_kb
   echo "write through" > $i/write_cache
 done;
 # Flash storages dont come with any back seeking problems, so set this as low as possible for performance;
@@ -377,22 +390,16 @@ echo "1" > /sys/block/mmcblk0rpmb/queue/iosched/back_seek_penalty
 echo "72" > /proc/sys/kernel/random/urandom_min_reseed_secs
 echo "128" > /proc/sys/kernel/random/read_wakeup_threshold
 echo "384" > /proc/sys/kernel/random/write_wakeup_threshold
-
-### FS ###
-# FileSystem (FS) optimized tweaks & enhancements for a improved userspace experience;
-echo "0" > /proc/sys/fs/dir-notify-enable
-echo "20" > /proc/sys/fs/lease-break-time
-# Disable fsync for more IO throughput (thus faster initialization once again);
-# echo "N" > /sys/module/sync/parameters/fsync_enabled
-# Dyanamic fsync:
-#  When enabled and screen is on, fsync operation is asynchronous;
-#  When screen is off, this operation is done synchronously;
-#echo '1'> /sys/kernel/dyn_fsync/Dyn_fsync_active
-# fstrim the respective partitions for a faster initialization process;
-fstrim /cache
-fstrim /system
-fstrim /data
-LOG "FS Timmed (Cache/System/Data)"
+# ZRAM and swap;
+#swapoff /dev/block/zram0
+#echo 1 > /sys/block/zram0/reset
+#echo 0 > /sys/block/zram0/disksize
+#swapon -p 32767 /dev/block/zram0
+#  IO tuning for ram and zram
+for i in /sys/block/ram*/queue; do
+  echo "256" > $i/read_ahead_kb
+done;
+echo "256" > /sys/block/zram0/queue/read_ahead_kb
 
 ### MISC ###
 # Disable software crc control;
@@ -410,46 +417,40 @@ echo "  Transition animation scale: "
 settings get global transition_animation_scale
 echo "  Animator duration: "
 settings get global animator_duration_scale
-
 ### IN TESTING ###
-# Set-up the CPUSet groups for performance and efficiency;
-echo "0-1" > /dev/cpuset/background/cpus
-echo "0-7" > /dev/cpuset/camera-daemon/cpus
-echo "0-3,5-6" > /dev/cpuset/foreground/cpus
-echo "0-3" > /dev/cpuset/restricted/cpus
-echo "0-1" > /dev/cpuset/system-background/cpus
-echo "0-7" > /dev/cpuset/top-app/cpus
-# Migration of tasks from one core to one another is a excessively expensive process for the system and may introduce some extra latency in a possible "worst case scenario". For 'fighting' this, then slightly increase the interval(s) that's required before the kernel considers migrating a task from one core to one another core;
-echo "2500000" > /proc/sys/kernel/sched_migration_cost_ns
-# Increase the usage of LITTLE cluster for saving power;
-#echo "94" > /proc/sys/kernel/sched_downmigrate
-# Use RCU_normal instead of RCU_expedited for improved real-time latency, CPU utilization and energy efficiency;
-#echo "1" > /sys/kernel/rcu_expedited
-echo "1" > /sys/kernel/rcu_normal
 # Blackenedmods tunings from pixel4 Q;
 # Disable / prevent the possibility of autoloading ldiscs;
 echo "0" > /proc/sys/dev/tty/ldisc_autoload
 # 
 echo "0" > /sys/module/ramoops/parameters/dump_oops
 #
-# Enable the IOwait_boost flag exclusively on the low power cluster for better performance during heavier IO workloads;
-echo "1" > /sys/devices/system/cpu/cpufreq/lightningutil/iowait_boost_enable
-#
-# ZRAM and swap;
-#swapoff /dev/block/zram0
-#echo 1 > /sys/block/zram0/reset
-#echo 0 > /sys/block/zram0/disksize
-#swapon -p 32767 /dev/block/zram0
-#  IO tuning for ram and zram
-for i in /sys/block/ram*/queue; do
-  echo "256" > $i/read_ahead_kb
-done;
-echo "256" > /sys/block/zram0/queue/read_ahead_kb
-#
 echo "Y" > /sys/kernel/debug/mdss_panel_fb0/intf0/ulps_feature_enabled
-echo "Y" > /sys/kernel/debug/mdss_panel_fb0/intf0/ulps_suspend_enabled
-# Fully disable kernel printk console log spamming directly for less amount of useless wakeups (reduces overhead);
-echo "0 0 0 0" > /proc/sys/kernel/printk
+echo "N" > /sys/kernel/debug/mdss_panel_fb0/intf0/ulps_suspend_enabled
+#
+setprop dalvik.vm.dex2oat-minidebuginfo false
+setprop dalvik.vm.minidebuginfo false
+# DISABLE CHARGING LIGHT!
+# Default value is 150
+chmod 644 /sys/class/leds/red/brightness
+echo 0 > /sys/class/leds/red/brightness
+chmod 444 /sys/class/leds/red/brightness
+echo "Charging light disabled!"
+
+### FS ###
+# FileSystem (FS) optimized tweaks & enhancements for a improved userspace experience;
+echo "0" > /proc/sys/fs/dir-notify-enable
+echo "20" > /proc/sys/fs/lease-break-time
+# Disable fsync for more IO throughput (thus faster initialization once again);
+# echo "N" > /sys/module/sync/parameters/fsync_enabled
+# Dyanamic fsync (Keep it disabled on unstable roms):
+#  When enabled and screen is on, fsync operation is asynchronous;
+#  When screen is off, this operation is done synchronously;
+#echo '1'> /sys/kernel/dyn_fsync/Dyn_fsync_active
+# FSTrim the respective partitions for a faster initialization process;
+fstrim /cache
+fstrim /system
+fstrim /data
+LOG "FS Timmed (Cache/System/Data)"
 
 ###_---END---_###
 # Everything done, report it in the log file;

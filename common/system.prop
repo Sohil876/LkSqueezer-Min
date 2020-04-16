@@ -1,20 +1,29 @@
 # This file will be read by resetprop
 # Example: Change dpi
 # ro.sf.lcd_density=320
-ro.vendor.qti.sys.fw.bg_apps_limit=96
+ro.vendor.qti.sys.fw.bg_apps_limit=90
 ro.vendor.qti.sys.fw.trim_enable_memory=644245094
-ro.vendor.qti.sys.fw.trim_empty_percent=80
+ro.vendor.qti.sys.fw.trim_empty_percent=70
 # taken from oneplus forums (probably an oxygenos/op specific prop that does nothing but why not) 
 ro.vendor.qti.sys.fw.bservice_limit=24
 ro.vendor.qti.sys.fw.bservice_age=16384
-#
+# Tweak the memory management of the device, enable more background apps.. et cetera..
+ro.config.fha_enable=true
+#ro.sys.fw.bg_apps_limit=32
+ro.config.dha_cached_max=16
+ro.config.dha_empty_max=42
+ro.config.dha_empty_init=32
+ro.config.dha_lmk_scale=0.545
+ro.config.dha_th_rate=2.3
+ro.config.sdha_apps_bg_max=64
+ro.config.sdha_apps_bg_min=8
 # Force Home in Memory
-ro.HOME_APP_ADJ=1
+#ro.HOME_APP_ADJ=1
 # Disables the sending of usage data
 ro.config.nocheckin=1
 #
 dalvik.vm.usejitprofiles=true
-debug.sf.hw=1
+#debug.sf.hw=1
 #
-debug.sf.latch_unsignaled=1
-#sys.use_fifo_ui=0
+debug.sf.latch_unsignaled=0
+sys.use_fifo_ui=0
